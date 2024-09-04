@@ -11,7 +11,16 @@
 
     const form = document.getElementById('form')
     const input = document.getElementById('input')
-
+    const msg = document.getElementById('msg')
+    
+    //escuchamos si hay mensajes
+    socket.on('chatMessage', (message) => {
+      const item = `<li>${message}</li>`
+      //insertamos el mensaje antes del ultimo elemento
+      msg.insertAdjacentHTML('beforeend', item)
+    })
+    
+    
     form.addEventListener('submit', (e) => {
       e.preventDefault()
       if (input.value) {
@@ -19,7 +28,7 @@
         input.value = ''
       }
     })
-
+ 
   </script>
 
   <style>
@@ -36,6 +45,20 @@
       height: 100vh;
       padding: 36px 36px 100px 36px;
       grid-template-rows: 1fr;
+    }
+
+    #msg{
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #msg li{
+      padding: .5rem 1rem;
+    }
+
+    #msg li:nth-child(odd){
+      background: #000;
     }
 
     :root{
@@ -90,6 +113,7 @@
 <body>
   <!-- <h1>Mi primer chat</h1> -->
   <section id="chat">
+    <ul id="msg"></ul>
     <form action="" id="form">
       <input type="text" name="message" id="input" placeholder="Escribe tu mensaje aqui..." autocomplete="off"/>
       <button type="submit">Enviar</button>

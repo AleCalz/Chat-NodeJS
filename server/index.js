@@ -1,8 +1,12 @@
 import express from 'express'
 import logger from 'morgan'
+import dotenv from 'dotenv'
 
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
+import { createClient } from '@libsql/client'
+
+dotenv.config()
 
 const port = process.env.PORT || 3000
 const app = express()
@@ -10,7 +14,23 @@ const app = express()
 //creamos nuestro server para poder utilizar todas las funciones de socket.io
 const server = createServer(app)
 //in out = io
-const io = new Server(server)
+const io = new Server(server, {
+  //TODO
+  connectionStateRecovery: {}
+})
+
+//conexion a db libsql/turso
+const db = createClient({
+  url: process.env.DB_URL,
+  authToken: process.env.DB_AUTH_TOKEN
+})
+
+//creamos la tabla si no existe
+await db.execute(`CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL
+  )`)
+
 //cuando el io tenga una conexion se ejecutará este callback
 io.on('connection', (socket) => {
   console.log('user conected!')
@@ -20,8 +40,13 @@ io.on('connection', (socket) => {
   })
 
   //cuando un socket de una especifica conexion reciba el evento chatMessage ejecuta el callback
+  //del cliente al serv para enviar el mensaje
   socket.on('chatMessage', (message) => {
-    console.log(message)
+    console.log(`msg socket: ${message}`)
+
+    //broadcast io.emit
+    //es un evento que se emite a todos los sockets conectados
+    //emitimos chatmessage a todo mundo
     io.emit('chatMessage', message)
   })
 })
