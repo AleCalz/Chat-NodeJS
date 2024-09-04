@@ -32,23 +32,53 @@ await db.execute(`CREATE TABLE IF NOT EXISTS messages (
   )`)
 
 //cuando el io tenga una conexion se ejecutará este callback
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   console.log('user conected!')
 
   socket.on('disconnect', () => {
     console.log('user disconnected!')
   })
 
+  //CLIENTE -> SERVER
   //cuando un socket de una especifica conexion reciba el evento chatMessage ejecuta el callback
-  //del cliente al serv para enviar el mensaje
-  socket.on('chatMessage', (message) => {
+  socket.on('chatMessage', async (message) => {
+    let result
+    try {
+      result = await db.execute({
+        sql: 'INSERT INTO messages (message) VALUES (:message)',
+        args: { message }
+      })
+    } catch (e) {
+      console.error(e)
+      return
+    }
     console.log(`msg socket: ${message}`)
 
     //broadcast io.emit
     //es un evento que se emite a todos los sockets conectados
     //emitimos chatmessage a todo mundo
-    io.emit('chatMessage', message)
+    //junto con el id de la ultima fila insertada (el ultimo mensaje = offset)
+    io.emit('chatMessage', message, result.lastInsertRowid.toString())
   })
+
+  console.log(socket.handshake.auth)
+
+  if (!socket.recovered) {
+    //recuperar los mensajes sin conexion
+    //si se conecta un nuevo cliente yno se recupera la desconexion
+    try {
+      const results = await db.execute({
+        sql: 'SELECT id, message FROM messages WHERE id > ?',
+        args: [socket.handshake.auth.serverOffset ?? 0]
+      })
+
+      results.rows.forEach((row) => {
+        socket.emit('chatMessage', row.message, row.id.toString())
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
 })
 
 //morgan es libreria que funciona a nivel de express para registrar las peticiones(logger)

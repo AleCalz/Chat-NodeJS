@@ -7,17 +7,26 @@
   <script type="module">
     import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js'
 
-    const socket = io()
+    const socket = io({
+      auth: {
+        token: '123',
+        user: 'aleclz',
+        serverOffset: 0 //para saber saber donde se ha quedado el cliente
+      }
+    })
 
     const form = document.getElementById('form')
     const input = document.getElementById('input')
     const msg = document.getElementById('msg')
     
     //escuchamos si hay mensajes
-    socket.on('chatMessage', (message) => {
+    socket.on('chatMessage', (message, serverOffset) => {
       const item = `<li>${message}</li>`
       //insertamos el mensaje antes del ultimo elemento
       msg.insertAdjacentHTML('beforeend', item)
+
+      //actualizamos el offset del cliente
+      socket.auth.serverOffset = serverOffset
     })
     
     
