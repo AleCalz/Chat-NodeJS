@@ -5,23 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat</title>
   <script type="module">
+
     import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js'
 
-    const socket = io({
-      auth: {
-        token: '123',
-        user: 'aleclz',
-        serverOffset: 0 //para saber saber donde se ha quedado el cliente
-      }
-    })
-
+    
     const form = document.getElementById('form')
     const input = document.getElementById('input')
     const msg = document.getElementById('msg')
     
+    const getUsername = async () => {
+      const username = localStorage.getItem('username')
+      if (username) {
+       console.log(`username: ${username}`)
+       return username
+      }
+
+      const res = await fetch('https://random-data-api.com/api/users/random_user') 
+      const { username: randomUsername } = await res.json()
+
+      localStorage.setItem('username', randomUsername)
+      console.log(`username: ${randomUsername}`)
+      
+      return randomUsername 
+    } 
+
+    const socket = io({
+      auth: {
+        username: await getUsername(),
+        serverOffset: 0 //para saber saber donde se ha quedado el cliente
+      }
+    })
+
     //escuchamos si hay mensajes
-    socket.on('chatMessage', (message, serverOffset) => {
-      const item = `<li>${message}</li>`
+    socket.on('chatMessage', (message, serverOffset, username) => {
+      const item = `<li>
+        <p>${message}</p>
+        <small>${username}</small>
+      </li>`
       //insertamos el mensaje antes del ultimo elemento
       msg.insertAdjacentHTML('beforeend', item)
 

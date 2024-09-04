@@ -28,7 +28,9 @@ const db = createClient({
 //creamos la tabla si no existe
 await db.execute(`CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message TEXT NOT NULL
+    message TEXT NOT NULL,
+    user TEXT NOT NULL
+
   )`)
 
 //cuando el io tenga una conexion se ejecutará este callback
@@ -43,37 +45,38 @@ io.on('connection', async (socket) => {
   //cuando un socket de una especifica conexion reciba el evento chatMessage ejecuta el callback
   socket.on('chatMessage', async (message) => {
     let result
+    const username = socket.handshake.auth.username ?? 'anonymous'
     try {
       result = await db.execute({
-        sql: 'INSERT INTO messages (message) VALUES (:message)',
-        args: { message }
+        sql: 'INSERT INTO messages (message, user) VALUES (:message, :username)',
+        args: { message, username }
       })
     } catch (e) {
       console.error(e)
       return
     }
-    console.log(`msg socket: ${message}`)
+    // console.log(`msg socket: ${message}`)
 
     //broadcast io.emit
     //es un evento que se emite a todos los sockets conectados
     //emitimos chatmessage a todo mundo
     //junto con el id de la ultima fila insertada (el ultimo mensaje = offset)
-    io.emit('chatMessage', message, result.lastInsertRowid.toString())
+    io.emit('chatMessage', message, result.lastInsertRowid.toString(), username)
   })
 
-  console.log(socket.handshake.auth)
+  // console.log(socket.handshake.auth)
 
   if (!socket.recovered) {
     //recuperar los mensajes sin conexion
     //si se conecta un nuevo cliente yno se recupera la desconexion
     try {
       const results = await db.execute({
-        sql: 'SELECT id, message FROM messages WHERE id > ?',
+        sql: 'SELECT id, message, user FROM messages WHERE id > ?',
         args: [socket.handshake.auth.serverOffset ?? 0]
       })
 
       results.rows.forEach((row) => {
-        socket.emit('chatMessage', row.message, row.id.toString())
+        socket.emit('chatMessage', row.message, row.id.toString(), row.user)
       })
     } catch (e) {
       console.error(e)
