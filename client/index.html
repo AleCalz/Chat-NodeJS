@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat</title>
+  <title>Chat Socket.IO</title>
   <script type="module">
 
     import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js'
@@ -47,6 +47,9 @@
 
       //actualizamos el offset del cliente
       socket.auth.serverOffset = serverOffset
+
+      //scroll a la ultima fila automáticamente
+      msg.scrollTop = msg.scrollHeight
     })
     
     
@@ -80,6 +83,13 @@
       list-style: none;
       margin: 0;
       padding: 0;
+      overflow-y: scroll;
+      height: 100%;
+      /* animacion */
+      scroll-behavior: smooth;
+      /* por la altura del from */
+      padding-bottom: 48px; 
+
     }
 
     #msg li{
